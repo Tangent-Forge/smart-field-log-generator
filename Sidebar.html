@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: 'Google Sans', Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+      .container {
+        max-width: 380px;
+      }
+      h1 {
+        color: #202124;
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .btn-primary {
+        background-color: #FF6F00;
+        color: white;
+      }
+      .btn-primary:hover {
+        background-color: #FF8F00;
+      }
+      .btn-secondary {
+        background-color: #f1f3f4;
+        color: #202124;
+      }
+      .btn-secondary:hover {
+        background-color: #e8eaed;
+      }
+      .template-item {
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .template-item:hover {
+        background-color: #f1f3f4;
+      }
+      .template-name {
+        font-weight: 600;
+        color: #202124;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+      .template-category {
+        font-size: 12px;
+        color: #5f6368;
+      }
+      .form-group {
+        margin-bottom: 16px;
+      }
+      .form-label {
+        display: block;
+        font-weight: 600;
+        color: #202124;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .form-label.required::after {
+        content: ' *';
+        color: #d93025;
+      }
+      .form-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: #FF6F00;
+      }
+      .form-textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+        min-height: 80px;
+        resize: vertical;
+      }
+      .form-textarea:focus {
+        outline: none;
+        border-color: #FF6F00;
+      }
+      .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .form-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #5f6368;
+      }
+      .spinner {
+        border: 3px solid #f1f3f4;
+        border-top: 3px solid #FF6F00;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .error {
+        color: #d93025;
+        padding: 12px;
+        background-color: #fce8e6;
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+      .success {
+        color: #188038;
+        padding: 12px;
+        background-color: #ceead6;
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📝 Field Log Generator</h1>
+      
+      <div id="content">
+        <div class="card">
+          <p style="color: #5f6368; margin-bottom: 16px;">
+            Create structured, standardized log entries in Google Docs.
+          </p>
+          <button class="btn btn-primary" onclick="loadTemplates()">
+            Select Template
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentTemplate = null;
+
+      function loadTemplates() {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading templates...</p>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(onTemplatesLoaded)
+          .withFailureHandler(onLoadError)
+          .apiGetTemplates();
+      }
+
+      function onTemplatesLoaded(templates) {
+        const content = document.getElementById('content');
+        
+        content.innerHTML = `
+          <div class="card">
+            <h3 style="margin: 0 0 16px 0; color: #202124; font-size: 16px;">
+              Select a Template
+            </h3>
+            ${templates.map(template => `
+              <div class="template-item" onclick="selectTemplate('${template.id}')">
+                <div class="template-name">${template.name}</div>
+                <div class="template-category">${template.category}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      function selectTemplate(templateId) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading template...</p>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(onTemplateLoaded)
+          .withFailureHandler(onLoadError)
+          .apiGetTemplate(templateId);
+      }
+
+      function onTemplateLoaded(template) {
+        currentTemplate = template;
+        renderForm(template);
+      }
+
+      function renderForm(template) {
+        const content = document.getElementById('content');
+        
+        let formHtml = `
+          <div class="card">
+            <h3 style="margin: 0 0 16px 0; color: #202124; font-size: 16px;">
+              ${template.name}
+            </h3>
+            <form id="logForm">
+        `;
+        
+        template.fields.forEach(field => {
+          const requiredClass = field.required ? 'required' : '';
+          
+          switch (field.type) {
+            case 'text':
+              formHtml += `
+                <div class="form-group">
+                  <label class="form-label ${requiredClass}">${field.label}</label>
+                  <input type="text" class="form-input" name="${field.id}" ${field.required ? 'required' : ''}>
+                </div>
+              `;
+              break;
+            case 'textarea':
+              formHtml += `
+                <div class="form-group">
+                  <label class="form-label ${requiredClass}">${field.label}</label>
+                  <textarea class="form-textarea" name="${field.id}" ${field.required ? 'required' : ''}></textarea>
+                </div>
+              `;
+              break;
+            case 'date':
+              formHtml += `
+                <div class="form-group">
+                  <label class="form-label ${requiredClass}">${field.label}</label>
+                  <input type="date" class="form-input" name="${field.id}" value="${new Date().toISOString().split('T')[0]}" ${field.required ? 'required' : ''}>
+                </div>
+              `;
+              break;
+            case 'time':
+              formHtml += `
+                <div class="form-group">
+                  <label class="form-label ${requiredClass}">${field.label}</label>
+                  <input type="time" class="form-input" name="${field.id}" value="${new Date().toTimeString().split(' ')[0].substring(0,5)}" ${field.required ? 'required' : ''}>
+                </div>
+              `;
+              break;
+            case 'number':
+              formHtml += `
+                <div class="form-group">
+                  <label class="form-label ${requiredClass}">${field.label}</label>
+                  <input type="number" class="form-input" name="${field.id}" step="0.5" ${field.required ? 'required' : ''}>
+                </div>
+              `;
+              break;
+            case 'select':
+              formHtml += `
+                <div class="form-group">
+                  <label class="form-label ${requiredClass}">${field.label}</label>
+                  <select class="form-input" name="${field.id}" ${field.required ? 'required' : ''}>
+                    ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                  </select>
+                </div>
+              `;
+              break;
+            case 'checkbox':
+              formHtml += `
+                <div class="form-group">
+                  <label class="form-checkbox">
+                    <input type="checkbox" name="${field.id}">
+                    <span>${field.label}</span>
+                  </label>
+                </div>
+              `;
+              break;
+          }
+        });
+        
+        formHtml += `
+            </form>
+            <button class="btn btn-primary" onclick="generateLog()">
+              Generate Log
+            </button>
+            <button class="btn btn-secondary" onclick="loadTemplates()">
+              Back to Templates
+            </button>
+          </div>
+        `;
+        
+        content.innerHTML = formHtml;
+      }
+
+      function generateLog() {
+        const form = document.getElementById('logForm');
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+
+        const formData = {};
+        const formElements = form.elements;
+        
+        for (let i = 0; i < formElements.length; i++) {
+          const element = formElements[i];
+          if (element.name) {
+            if (element.type === 'checkbox') {
+              formData[element.name] = element.checked;
+            } else {
+              formData[element.name] = element.value;
+            }
+          }
+        }
+
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Generating log...</p>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(onLogGenerated)
+          .withFailureHandler(onGenerateError)
+          .apiGenerateLog(currentTemplate.id, formData);
+      }
+
+      function onLogGenerated(result) {
+        const content = document.getElementById('content');
+        
+        content.innerHTML = `
+          <div class="success">
+            <strong>Success!</strong> Log document created.
+          </div>
+          <div class="card">
+            <p style="color: #5f6368; font-size: 13px; margin-bottom: 8px;">
+              <strong>Document URL:</strong> <a href="${result.url}" target="_blank">${result.url}</a>
+            </p>
+          </div>
+          <button class="btn btn-primary" onclick="window.open('${result.url}', '_blank')">
+            Open Document
+          </button>
+          <button class="btn btn-secondary" onclick="loadTemplates()">
+            Create Another Log
+          </button>
+        `;
+      }
+
+      function onLoadError(error) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error">
+            <strong>Error:</strong> ${error.message}
+          </div>
+          <button class="btn btn-secondary" onclick="loadTemplates()">
+            Try Again
+          </button>
+        `;
+      }
+
+      function onGenerateError(error) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error">
+            <strong>Error:</strong> ${error.message}
+          </div>
+          <button class="btn btn-secondary" onclick="renderForm(currentTemplate)">
+            Back to Form
+          </button>
+        `;
+      }
+    </script>
+  </body>
+</html>
